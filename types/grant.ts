@@ -1,0 +1,20 @@
+export type Grant = {
+  id: string;
+  status: string;
+  title: string;
+  provider_name: string | null;
+  provider?: string | null;
+  funding_amount_min: number | null;
+  funding_amount_max: number | null;
+  amount_min?: number | null;
+  amount_max?: number | null;
+  short_description: string | null;
+  description?: string | null;
+  sector: string[] | null;
+  region: string[] | null;
+  eligibility: string[] | null;
+  deadline: string | null;
+  url?: string | null;
+  application_url?: string | null;
+  created_at: string;
+};
