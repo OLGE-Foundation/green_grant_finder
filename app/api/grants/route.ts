@@ -1,34 +1,23 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
+import { applyGrantListFilters } from "@/lib/grants/query";
+import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/supabase/config";
 
-function escapeIlikePattern(value: string) {
-  return value
-    .replace(/\\/g, "\\\\")
-    .replace(/%/g, "\\%")
-    .replace(/_/g, "\\_")
-    .replace(/,/g, "");
-}
+export function createAnonSupabaseClient() {
+  const supabaseUrl = getSupabaseUrl();
+  const supabaseKey = getSupabaseAnonKey();
 
-function quotePostgrestFilterValue(value: string) {
-  const escaped = value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-  return `"${escaped}"`;
-}
+  if (!supabaseUrl || !supabaseKey) {
+    return null;
+  }
 
-function normalizeSupabaseUrl(url: string) {
-  return url
-    .trim()
-    .replace(/\/+$/, "")
-    .replace(/\/rest\/v1\/?$/i, "");
+  return createClient(supabaseUrl, supabaseKey);
 }
 
 export async function GET(request: NextRequest) {
-  const rawUrl =
-    process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL ?? "";
-  const supabaseUrl = normalizeSupabaseUrl(rawUrl);
-  const supabaseKey =
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.SUPABASE_ANON_KEY;
+  const supabase = createAnonSupabaseClient();
 
-  if (!supabaseUrl || !supabaseKey) {
+  if (!supabase) {
     return NextResponse.json(
       {
         error:
@@ -38,31 +27,9 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const supabase = createClient(supabaseUrl, supabaseKey);
   const { searchParams } = new URL(request.url);
-  const sector = searchParams.get("sector");
-  const region = searchParams.get("region");
-  const q = searchParams.get("q");
-
   let query = supabase.from("grants").select("*").eq("status", "approved");
-
-  if (sector && sector.trim()) {
-    query = query.contains("sector", [sector.trim()]);
-  }
-
-  if (region && region.trim()) {
-    query = query.contains("region", [region.trim()]);
-  }
-
-  if (q && q.trim()) {
-    const term = `%${escapeIlikePattern(q.trim())}%`;
-    const quoted = quotePostgrestFilterValue(term);
-    query = query.or(
-      `title.ilike.${quoted},description.ilike.${quoted},provider.ilike.${quoted}`,
-    );
-  }
-
-  query = query.order("deadline", { ascending: true });
+  query = applyGrantListFilters(query, searchParams);
 
   const { data, error } = await query;
 
@@ -77,7 +44,11 @@ export async function GET(request: NextRequest) {
         error: error.message,
         code: error.code,
         details: error.details,
-        hint: error.hint ?? (isBadUrlPath ? "Use the Supabase project URL without a /rest/v1 suffix." : undefined),
+        hint:
+          error.hint ??
+          (isBadUrlPath
+            ? "Use the Supabase project URL without a /rest/v1 suffix."
+            : undefined),
       },
       { status: 500 },
     );

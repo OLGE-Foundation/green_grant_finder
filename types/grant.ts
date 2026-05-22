@@ -17,4 +17,8 @@ export type Grant = {
   url?: string | null;
   application_url?: string | null;
   created_at: string;
+  source?: string | null;
+  contact_email?: string | null;
+  additional_notes?: string | null;
+  approved_at?: string | null;
 };

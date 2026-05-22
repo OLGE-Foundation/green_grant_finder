@@ -1,24 +1,35 @@
 # Green Grant Finder
 
-A Next.js app for discovering **approved** green funding opportunities. Users search and filter grants by sector, region, eligibility, and amount; results are loaded from **Supabase** via a small API route.
+A Next.js app for discovering **approved** green funding opportunities. Users search and filter grants by sector, region, eligibility, and amount; bookmark grants when logged in; and receive weekly email digests. Grant providers can submit new listings for review.
 
 ## Stack
 
 - [Next.js 16](https://nextjs.org/) (App Router)
 - [React 19](https://react.dev/)
 - [Tailwind CSS v4](https://tailwindcss.com/)
-- [Supabase JS](https://supabase.com/docs/reference/javascript/introduction) (`@supabase/supabase-js`)
+- [Supabase](https://supabase.com/) (Auth, Postgres, RLS)
+- [Resend](https://resend.com/) (weekly digest emails)
 
 ## Features
 
+### Phase 1 — Directory
 - **Directory UI** with keyword search, sector / region / eligibility / amount filters, sort (deadline, amount, date added), and removable filter chips.
-- **GET `/api/grants`** backed by Supabase: only `status = 'approved'`, optional `sector` / `region` (array `.contains`), optional `q` (ILIKE on `title`, `description`, `provider`), ordered by `deadline` ascending.
-- **Grant cards** with funding range, description, tags, deadline urgency, optional application link, and a save button (disabled until you wire `isLoggedIn` in `GrantFinder.tsx`).
+- **GET `/api/grants`** backed by Supabase: only `status = 'approved'`.
+- **Grant cards** with funding range, description, tags, deadline urgency, application link, and star bookmark button.
+
+### Phase 2 — User accounts & provider submissions
+- **Email/password auth** (Supabase Auth) with `/login`, `/signup`, auth modal, and session refresh via middleware.
+- **Bookmarks** persisted to `bookmarks` table; star toggle on grant cards.
+- **`/saved`** — same search, filters, and sort as the main directory, scoped to bookmarked grants.
+- **Alert preferences** on `/saved` for weekly digest sectors/regions.
+- **`/submit`** — multi-step provider form; inserts grants with `status = 'pending'` and `source = 'provider'`.
+- **Weekly digest cron** at `GET /api/cron/weekly-digest` (Resend).
 
 ## Prerequisites
 
-- Node.js 20+ (matches `@types/node` in the project)
-- A [Supabase](https://supabase.com/) project with a `grants` table (see below)
+- Node.js 20+
+- A [Supabase](https://supabase.com/) project
+- (Optional) [Resend](https://resend.com/) account for email digests
 
 ## Getting started
 
@@ -26,23 +37,23 @@ A Next.js app for discovering **approved** green funding opportunities. Users se
 npm install
 ```
 
-Create **`.env.local`** in the project root (this file is gitignored):
+Create **`.env.local`** in the project root:
 
 ```env
+# Supabase (required)
 NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_public_key
+
+# Server-only (required for provider submissions + weekly digest)
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+# Resend (required for weekly digest emails)
+RESEND_API_KEY=re_...
+RESEND_FROM_EMAIL=Green Grant Finder <alerts@yourdomain.com>
+
+# Cron protection (required for /api/cron/weekly-digest)
+CRON_SECRET=your_random_secret
 ```
-
-Optional server-only aliases (read by the API route if the `NEXT_PUBLIC_*` names are not set):
-
-```env
-SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
-SUPABASE_ANON_KEY=your_anon_public_key
-```
-
-### Supabase URL
-
-Use `https://<project-ref>.supabase.co` in the env var — **not** `…/rest/v1/…`. The client adds `/rest/v1`; duplicating it breaks requests. The API strips a trailing `/rest/v1` if present, but the env value should still be the bare project URL.
 
 Run the dev server:
 
@@ -52,86 +63,93 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+## Supabase setup
+
+### 1. Run the Phase 2 migration
+
+In the Supabase SQL editor, run:
+
+[`supabase/migrations/20260522000000_phase2_user_features.sql`](supabase/migrations/20260522000000_phase2_user_features.sql)
+
+This adds `bookmarks`, `alert_preferences`, `profiles`, and extends `grants` with `source`, `contact_email`, `additional_notes`, and `approved_at`.
+
+### 2. Enable Auth
+
+1. Supabase Dashboard → **Authentication** → **Providers** → enable **Email**.
+2. Set **Site URL** to your app origin (e.g. `http://localhost:3000`).
+3. Add **Redirect URLs**: `http://localhost:3000/auth/callback` (and production URL when deployed).
+
+If embedding in a WordPress iframe cross-origin, you may need cookie `SameSite=None; Secure` in Supabase auth settings.
+
+### 3. Base grants table
+
+If starting fresh, create `grants` first (see migration comments in README Phase 1 section or the migration file). The API expects columns including `title`, `provider`, `description`, `sector`, `region`, `eligibility`, `amount_min`, `amount_max`, `deadline`, `url`, `status`, `created_at`.
+
 ## Database
 
-The API queries **`public.grants`**. Column expectations:
+| Table | Purpose |
+|-------|---------|
+| `grants` | All grant listings; public read when `status = 'approved'` |
+| `bookmarks` | User ↔ grant saves |
+| `alert_preferences` | Weekly digest settings per user |
+| `profiles` | User email synced from `auth.users` |
 
-| Column | Notes |
-|--------|--------|
-| `id` | `uuid` (or compatible string primary key) |
-| `status` | Text; API filters `approved` |
-| `title`, `deadline`, `created_at` | Used for display and sorting |
-| `sector`, `region`, `eligibility` | **`text[]`** (required for `.contains` filters from the API) |
-| `provider` or `provider_name` | Search + display |
-| `description` or `short_description` | Search + display |
-| `amount_min` / `amount_max` and/or `funding_amount_min` / `funding_amount_max` | Display and client-side amount filter |
-| `url` or `application_url` | Optional “Apply” link on cards |
+Provider submissions are inserted server-side with the service role — no public insert policy on `grants`.
 
-Example table and a minimal RLS policy for public read of approved rows:
+## API routes
 
-```sql
-create table public.grants (
-  id uuid primary key default gen_random_uuid(),
-  status text not null default 'draft',
-  title text not null,
-  provider text,
-  description text,
-  amount_min numeric,
-  amount_max numeric,
-  sector text[] default '{}',
-  region text[] default '{}',
-  eligibility text[] default '{}',
-  deadline timestamptz,
-  url text,
-  created_at timestamptz not null default now()
-);
+| Route | Auth | Description |
+|-------|------|-------------|
+| `GET /api/grants` | Public | Approved grants with optional `sector`, `region`, `q` |
+| `GET /api/grants/saved` | Required | Bookmarked approved grants (same query params) |
+| `POST /api/grants/submit` | Public | Provider submission (validated server-side) |
+| `GET /api/bookmarks` | Required | List bookmarked grant IDs |
+| `POST /api/bookmarks` | Required | Toggle bookmark `{ grantId }` |
+| `GET/PUT /api/alerts/preferences` | Required | Read/update digest preferences |
+| `GET /api/cron/weekly-digest` | `Bearer CRON_SECRET` | Send weekly digest emails |
 
-alter table public.grants enable row level security;
+## Weekly digest
 
-create policy "Public read approved grants"
-  on public.grants for select
-  to anon, authenticated
-  using (status = 'approved');
+The cron route finds grants approved in the last 7 days and emails users who have alerts enabled, matching preferred sectors/regions (or sectors/regions from bookmarked grants when prefs are empty).
+
+**Local test:**
+
+```bash
+curl -H "Authorization: Bearer YOUR_CRON_SECRET" http://localhost:3000/api/cron/weekly-digest
 ```
 
-Adjust names and types to match your real schema; grant `select` on the table to `anon` if you use the anon key.
-
-## API
-
-### `GET /api/grants`
-
-| Query | Behavior |
-|-------|-----------|
-| `sector` | `.contains('sector', [value])` — value must exist in the row’s `sector` array |
-| `region` | `.contains('region', [value])` |
-| `q` | ILIKE search across `title`, `description`, `provider` |
-
-Response: JSON array of rows, or JSON error object with `error`, and when available `code`, `details`, `hint`.
+On Vercel, [`vercel.json`](vercel.json) schedules the job for Mondays at 09:00 UTC. Set `CRON_SECRET` in Vercel env vars; Vercel sends it automatically to cron invocations.
 
 ## Scripts
 
 | Command | Purpose |
 |---------|---------|
-| `npm run dev` | Development server (Turbopack) |
+| `npm run dev` | Development server |
 | `npm run build` | Production build |
-| `npm run start` | Run production server (after `build`) |
+| `npm run start` | Run production server |
 | `npm run lint` | ESLint |
 
 ## Project layout
 
 ```
 app/
-  api/grants/route.ts   # Sup-backed grants API
-  layout.tsx            # Root layout (fonts)
-  page.tsx              # Home (background + GrantFinder)
-  globals.css           # Tailwind + global motion tokens
+  api/                  # Grants, bookmarks, alerts, submit, cron
+  auth/callback/        # Supabase OAuth/code exchange
+  login/ signup/ saved/ submit/
+  page.tsx              # Home directory
 components/
-  GrantFinder.tsx       # Filters, search, list, data fetching
-  GrantCard.tsx         # Individual grant card
-types/
-  grant.ts              # TypeScript shape for a grant row
+  auth/                 # AuthProvider, AuthModal, AuthForm
+  GrantFinder.tsx       # Main directory
+  SavedGrants.tsx       # Saved grants page
+  SubmitGrantForm.tsx   # Provider submission
+lib/
+  supabase/             # Browser, server, admin clients
+  grants/               # Filters, constants, normalize
+  email/                # Resend + weekly digest
+  validation/           # Zod schemas
+supabase/migrations/    # SQL migrations
 ```
 
 ## License
 
-Private project (`"private": true` in `package.json`). Add a license file if you open-source the repo.
+Private project (`"private": true` in `package.json`).

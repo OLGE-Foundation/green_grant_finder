@@ -1,10 +1,10 @@
 import { PageBackground } from "@/components/PageBackground";
-import { GrantFinder } from "@/components/GrantFinder";
+import { SavedGrants } from "@/components/SavedGrants";
 
-export default function Home() {
+export default function SavedPage() {
   return (
     <PageBackground>
-      <GrantFinder />
+      <SavedGrants />
     </PageBackground>
   );
 }
