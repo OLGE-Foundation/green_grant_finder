@@ -7,10 +7,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
 
-pip install beautifulsoup4==4.12.3 python-dotenv==1.0.1
-pip install "playwright>=1.48.0"
-pip install supabase==2.4.0
-pip install httpx==0.27.0 --force-reinstall
+pip install -r requirements.txt
 
 playwright install chromium
 

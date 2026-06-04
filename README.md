@@ -160,7 +160,7 @@ python scraper.py
 
 On macOS/Linux: `cd scraper && bash setup.sh && source .venv/bin/activate && python scraper.py`
 
-`setup.ps1` / `setup.sh` install deps in two steps (`supabase` then `httpx==0.27.0`) because `supabase 2.4.0` declares `httpx<0.26` while Python 3.13 needs `0.27` for `create_client`. Warnings about `litellm` / `mcp` only apply if you install into **global** Python — use `scraper/.venv` instead.
+`setup.ps1` / `setup.sh` install from `scraper/requirements.txt` (uses `supabase==2.10.0` + `httpx==0.27.0` so `create_client` works in CI and locally). Warnings about `litellm` / `mcp` only apply if you install into **global** Python — use `scraper/.venv` instead.
 
 Optional overrides: `UNEP_URL` / `UNEP_URLS`, `GLOBALGIVING_API_URL`, `CLIMATEWORKS_URL` / `CLIMATEWORKS_URLS`.
 
