@@ -78,7 +78,7 @@ function MultiSelect({
               key={option}
               type="button"
               onClick={() => onChange(toggleValue(selected, option))}
-              className={`rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition-colors ${
+              className={`touch-target rounded-full px-3 py-2 text-xs font-semibold ring-1 transition-colors sm:py-1.5 ${
                 active ? activeClass : idleClass
               }`}
             >
@@ -198,7 +198,7 @@ export function SubmitGrantForm() {
   }
 
   const inputClass =
-    "mt-1.5 w-full rounded-xl border border-zinc-200/90 bg-white/90 px-3.5 py-2.5 text-sm text-zinc-900 shadow-sm focus:border-emerald-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/15";
+    "touch-target mt-1.5 w-full rounded-xl border border-zinc-200/90 bg-white/90 px-3.5 py-3 text-base text-zinc-900 shadow-sm focus:border-emerald-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/15 sm:py-2.5 sm:text-sm";
 
   return (
     <div className="rounded-3xl border border-white/70 bg-white/85 p-6 shadow-xl ring-1 ring-emerald-950/[0.04] sm:p-8 [backdrop-filter:blur(16px)]">
@@ -206,7 +206,7 @@ export function SubmitGrantForm() {
         {[1, 2, 3].map((n) => (
           <div key={n} className="flex flex-1 items-center gap-2">
             <span
-              className={`flex size-8 items-center justify-center rounded-full text-sm font-bold ${
+              className={`flex size-9 items-center justify-center rounded-full text-sm font-bold sm:size-8 ${
                 step >= n
                   ? "bg-emerald-600 text-white"
                   : "bg-zinc-100 text-zinc-500"
@@ -381,7 +381,7 @@ export function SubmitGrantForm() {
           <button
             type="button"
             onClick={() => setStep((s) => s - 1)}
-            className="rounded-full border border-zinc-200 bg-white px-5 py-2.5 text-sm font-semibold text-zinc-700 hover:border-emerald-300"
+            className="touch-target rounded-full border border-zinc-200 bg-white px-5 py-2.5 text-sm font-semibold text-zinc-700 hover:border-emerald-300"
           >
             Back
           </button>
@@ -394,7 +394,7 @@ export function SubmitGrantForm() {
             onClick={() => {
               if (validateStep(step)) setStep((s) => s + 1);
             }}
-            className="rounded-full bg-emerald-950 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-900"
+            className="touch-target rounded-full bg-emerald-950 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-900"
           >
             Continue
           </button>
@@ -403,7 +403,7 @@ export function SubmitGrantForm() {
             type="button"
             onClick={handleSubmit}
             disabled={submitting}
-            className="rounded-full bg-emerald-950 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-900 disabled:opacity-60"
+            className="touch-target rounded-full bg-emerald-950 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-900 disabled:opacity-60"
           >
             {submitting ? "Submitting…" : "Submit grant"}
           </button>

@@ -1,3 +1,5 @@
+import { motion, AnimatePresence } from "framer-motion";
+
 type FilterChip = {
   key: string;
   label: string;
@@ -44,24 +46,30 @@ export function GrantSearchBar({ search, onSearchChange, chips }: GrantSearchBar
 
       {chips.length > 0 && (
         <div className="mt-5 flex flex-wrap gap-2">
-          {chips.map((c, i) => (
-            <button
-              key={c.key}
-              type="button"
-              onClick={c.onRemove}
-              className="animate-chip-in inline-flex items-center gap-2 rounded-full border border-emerald-200/50 bg-gradient-to-r from-emerald-600 to-teal-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-md shadow-emerald-700/20 transition-opacity duration-200 ease-out hover:opacity-95"
-              style={{ animationDelay: `${i * 45}ms` }}
-            >
-              <span>{c.label}</span>
-              <span
-                aria-hidden
-                className="flex size-5 items-center justify-center rounded-full bg-white/20 text-sm leading-none"
+          <AnimatePresence>
+            {chips.map((c, i) => (
+              <motion.button
+                key={c.key}
+                layout
+                initial={{ opacity: 0, scale: 0.8, y: 4 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.15 } }}
+                transition={{ duration: 0.2, delay: i * 0.04 }}
+                type="button"
+                onClick={c.onRemove}
+                className="touch-target inline-flex items-center gap-2 rounded-full border border-emerald-200/50 bg-gradient-to-r from-emerald-600 to-teal-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-md shadow-emerald-700/20 transition-opacity duration-200 ease-out hover:opacity-95"
               >
-                ×
-              </span>
-              <span className="sr-only">Remove filter</span>
-            </button>
-          ))}
+                <span>{c.label}</span>
+                <span
+                  aria-hidden
+                  className="flex size-6 items-center justify-center rounded-full bg-white/20 text-sm leading-none sm:size-5"
+                >
+                  ×
+                </span>
+                <span className="sr-only">Remove filter</span>
+              </motion.button>
+            ))}
+          </AnimatePresence>
         </div>
       )}
     </div>

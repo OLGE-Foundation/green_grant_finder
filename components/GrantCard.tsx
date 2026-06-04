@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from "react";
 import { useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import type { Grant } from "@/types/grant";
 
 function formatFundingRange(min: number | null, max: number | null): string {
@@ -131,7 +132,8 @@ export function GrantCard({
   }
 
   return (
-    <article
+    <motion.article
+      layout
       style={style}
       className="group relative flex flex-col overflow-hidden rounded-3xl border border-white/70 bg-white/85 p-5 shadow-[0_2px_16px_-2px_rgba(15,118,110,0.08),0_8px_32px_-8px_rgba(15,23,42,0.06)] outline-none ring-1 ring-transparent transition-[border-color,background-color] duration-300 ease-out [backdrop-filter:saturate(140%)_blur(10px)] hover:border-emerald-300/55 hover:bg-white/95 focus-visible:border-emerald-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/25"
     >
@@ -140,48 +142,52 @@ export function GrantCard({
         aria-hidden
       />
 
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <motion.div layout className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
-          <h3 className="text-lg font-semibold leading-snug tracking-tight text-emerald-950 transition-colors duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:text-emerald-800">
+          <h3 className="text-base font-semibold leading-snug tracking-tight text-emerald-950 transition-colors duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:text-emerald-800 sm:text-lg">
             {grant.title}
           </h3>
           <p className="mt-1.5 text-sm font-medium text-emerald-700/85">
             {normalized.providerName}
           </p>
         </div>
-        <div className="flex flex-col items-end gap-2 text-right">
-          <span className="rounded-full bg-gradient-to-br from-emerald-50 to-teal-50/90 px-3.5 py-1.5 text-xs font-semibold text-emerald-900 shadow-sm ring-1 ring-emerald-600/10">
+        <div className="flex flex-wrap items-center gap-2 sm:flex-col sm:items-end sm:text-right">
+          <span className="rounded-full bg-gradient-to-br from-emerald-50 to-teal-50/90 px-3 py-1.5 text-[clamp(0.6875rem,2vw,0.75rem)] font-semibold text-emerald-900 shadow-sm ring-1 ring-emerald-600/10 sm:px-3.5">
             {formatFundingRange(normalized.minAmount, normalized.maxAmount)}
           </span>
           <span
             className={
               urgency.tone === "urgent"
-                ? "rounded-full bg-gradient-to-r from-rose-100 to-orange-100 px-3 py-1 text-xs font-bold text-rose-900 shadow-sm ring-2 ring-rose-300/80"
+                ? "rounded-full bg-gradient-to-r from-rose-100 to-orange-100 px-2.5 py-1 text-[clamp(0.6875rem,2vw,0.75rem)] font-bold text-rose-900 shadow-sm ring-2 ring-rose-300/80 sm:px-3"
                 : urgency.tone === "soon"
-                  ? "rounded-full bg-gradient-to-r from-amber-100 to-orange-100 px-3 py-1 text-xs font-semibold text-amber-950 shadow-sm ring-2 ring-amber-300/70"
+                  ? "rounded-full bg-gradient-to-r from-amber-100 to-orange-100 px-2.5 py-1 text-[clamp(0.6875rem,2vw,0.75rem)] font-semibold text-amber-950 shadow-sm ring-2 ring-amber-300/70 sm:px-3"
                   : urgency.tone === "closed"
-                    ? "rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-500 ring-1 ring-zinc-200/80"
-                    : "rounded-full bg-emerald-100/90 px-3 py-1 text-xs font-medium text-emerald-900 ring-1 ring-emerald-300/30"
+                    ? "rounded-full bg-zinc-100 px-2.5 py-1 text-[clamp(0.6875rem,2vw,0.75rem)] font-medium text-zinc-500 ring-1 ring-zinc-200/80 sm:px-3"
+                    : "rounded-full bg-emerald-100/90 px-2.5 py-1 text-[clamp(0.6875rem,2vw,0.75rem)] font-medium text-emerald-900 ring-1 ring-emerald-300/30 sm:px-3"
             }
           >
             {urgency.label}
           </span>
         </div>
-      </div>
+      </motion.div>
 
       {description && (
-        <div
-          className={`mt-3 overflow-hidden transition-[max-height] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        <motion.div
+          layout
+          initial={false}
+          animate={{ height: longDescription && !expanded ? "5.5rem" : "auto" }}
+          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          className={`mt-3 overflow-hidden ${
             longDescription && !expanded
-              ? "max-h-[5.5rem] [mask-image:linear-gradient(to_bottom,black_62%,transparent)]"
-              : "max-h-[min(80rem,100vh)]"
+              ? "[mask-image:linear-gradient(to_bottom,black_62%,transparent)]"
+              : ""
           }`}
         >
           <p className="text-sm leading-relaxed text-zinc-600">{description}</p>
-        </div>
+        </motion.div>
       )}
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <motion.div layout className="mt-4 flex flex-wrap gap-2">
         {(grant.sector ?? []).map((s) => (
           <span
             key={s}
@@ -206,14 +212,14 @@ export function GrantCard({
             {e}
           </span>
         ))}
-      </div>
+      </motion.div>
 
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200/70 pt-3">
+      <motion.div layout className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200/70 pt-3">
         {longDescription ? (
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            className="text-xs font-semibold text-emerald-700 hover:text-emerald-800"
+            className="touch-target text-xs font-semibold text-emerald-700 hover:text-emerald-800"
           >
             {expanded ? "Show less" : "Read more"}
           </button>
@@ -225,7 +231,7 @@ export function GrantCard({
           <button
             type="button"
             onClick={handleBookmarkClick}
-            className={`inline-flex items-center justify-center rounded-full p-2 transition-colors duration-200 ease-out ${
+            className={`touch-target inline-flex items-center justify-center rounded-full p-2.5 transition-colors duration-200 ease-out ${
               saved
                 ? "bg-amber-100 text-amber-600 hover:bg-amber-200"
                 : "bg-zinc-100 text-zinc-400 hover:bg-emerald-100 hover:text-emerald-700"
@@ -241,14 +247,14 @@ export function GrantCard({
               href={normalized.applicationUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 rounded-full bg-emerald-950 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-900"
+              className="touch-target inline-flex items-center gap-1 rounded-full bg-emerald-950 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-900"
             >
               Apply
               <span aria-hidden>↗</span>
             </a>
           )}
         </div>
-      </div>
-    </article>
+      </motion.div>
+    </motion.article>
   );
 }

@@ -1,4 +1,5 @@
 import type { Grant } from "@/types/grant";
+import { motion, AnimatePresence } from "framer-motion";
 import { GrantCard } from "./GrantCard";
 
 function GrantCardSkeleton() {
@@ -41,7 +42,7 @@ export function GrantResultsGrid({
 }: GrantResultsGridProps) {
   return (
     <div
-      className={`results-surface space-y-6 ${loading && grants.length > 0 ? "results-surface--refreshing" : ""}`}
+      className={`results-surface space-y-4 sm:space-y-6 ${loading && grants.length > 0 ? "results-surface--refreshing" : ""}`}
     >
       <div className="flex flex-wrap items-center justify-between gap-3 transition-opacity duration-300">
         <p className="flex items-center gap-2 text-sm text-zinc-600">
@@ -75,7 +76,7 @@ export function GrantResultsGrid({
       )}
 
       {loading && grants.length === 0 && !error && (
-        <ul className="grid gap-5 sm:grid-cols-2">
+        <ul className="grid gap-4 sm:grid-cols-2 sm:gap-5">
           <li>
             <GrantCardSkeleton />
           </li>
@@ -85,25 +86,31 @@ export function GrantResultsGrid({
         </ul>
       )}
 
-      <ul
-        className={`grid gap-5 sm:grid-cols-2 ${loading && grants.length === 0 && !error ? "hidden" : ""}`}
+      <motion.ul
+        layout
+        className={`grid gap-4 sm:grid-cols-2 sm:gap-5 ${loading && grants.length === 0 && !error ? "hidden" : ""}`}
       >
-        {grants.map((g, i) => (
-          <li
-            key={g.id}
-            className="animate-fade-up"
-            style={{ animationDelay: `${Math.min(i * 72, 520)}ms` }}
-          >
-            <GrantCard
-              grant={g}
-              isLoggedIn={isLoggedIn}
-              saved={bookmarkIds.has(g.id)}
-              onBookmarkToggle={() => onBookmarkToggle(g.id)}
-              onBookmarkRequiresAuth={() => onBookmarkRequiresAuth(g.id)}
-            />
-          </li>
-        ))}
-      </ul>
+        <AnimatePresence mode="popLayout">
+          {grants.map((g, i) => (
+            <motion.li
+              key={g.id}
+              layout
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.3, delay: Math.min(i * 0.05, 0.4) }}
+            >
+              <GrantCard
+                grant={g}
+                isLoggedIn={isLoggedIn}
+                saved={bookmarkIds.has(g.id)}
+                onBookmarkToggle={() => onBookmarkToggle(g.id)}
+                onBookmarkRequiresAuth={() => onBookmarkRequiresAuth(g.id)}
+              />
+            </motion.li>
+          ))}
+        </AnimatePresence>
+      </motion.ul>
     </div>
   );
 }

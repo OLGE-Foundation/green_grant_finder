@@ -1,7 +1,9 @@
 "use client";
 
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/components/auth/AuthProvider";
 
 const navLinks = [
@@ -13,6 +15,24 @@ const navLinks = [
 export function AppHeader() {
   const pathname = usePathname();
   const { user, loading, openAuthModal, signOut } = useAuth();
+  const [isOpen, setIsOpen] = useState(false);
+
+  const startClose = useCallback(() => setIsOpen(false), []);
+
+  // Close menu on route change
+  useEffect(() => {
+    setIsOpen(false);
+  }, [pathname]);
+
+  // Close menu on Escape
+  useEffect(() => {
+    if (!isOpen) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setIsOpen(false);
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen]);
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/60 bg-white/70 [backdrop-filter:blur(12px)]">
@@ -24,7 +44,8 @@ export function AppHeader() {
           Green Grant Finder
         </Link>
 
-        <nav className="flex flex-wrap items-center gap-1 sm:gap-2">
+        {/* Desktop nav: visible at md and above */}
+        <nav className="hidden items-center gap-1 md:flex md:gap-2">
           {navLinks.map(({ href, label }) => {
             const active = pathname === href;
             return (
@@ -43,7 +64,8 @@ export function AppHeader() {
           })}
         </nav>
 
-        <div className="flex items-center gap-2">
+        {/* Desktop auth buttons: visible at md and above */}
+        <div className="hidden items-center gap-2 md:flex">
           {loading ? (
             <span className="size-2 animate-pulse rounded-full bg-emerald-400" />
           ) : user ? (
@@ -78,7 +100,109 @@ export function AppHeader() {
             </>
           )}
         </div>
+
+        {/* Mobile hamburger: visible below md */}
+        <button
+          type="button"
+          onClick={() => setIsOpen((v) => !v)}
+          className="flex size-10 items-center justify-center rounded-xl text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-emerald-800 md:hidden"
+          aria-label={isOpen ? "Close menu" : "Open menu"}
+          aria-expanded={isOpen}
+        >
+          <svg
+            className="size-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+            aria-hidden
+          >
+            {isOpen ? (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            )}
+          </svg>
+        </button>
       </div>
+
+      {/* Mobile menu panel */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="absolute inset-x-0 top-full border-t border-white/40 bg-white/95 px-4 pb-4 pt-2 shadow-lg [backdrop-filter:blur(16px)] md:hidden"
+          >
+            <nav className="flex flex-col gap-1">
+              {navLinks.map(({ href, label }) => {
+                const active = pathname === href;
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={startClose}
+                    className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
+                      active
+                        ? "bg-emerald-100 text-emerald-900"
+                        : "text-zinc-600 hover:bg-zinc-50 hover:text-emerald-800"
+                    }`}
+                  >
+                    {label}
+                  </Link>
+                );
+              })}
+            </nav>
+
+            <div className="mt-3 flex flex-col gap-2 border-t border-zinc-100 pt-3">
+              {loading ? (
+                <span className="size-2 animate-pulse rounded-full bg-emerald-400" />
+              ) : user ? (
+                <>
+                  <span className="truncate px-4 py-1 text-xs text-zinc-500">
+                    {user.email}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      startClose();
+                      signOut();
+                    }}
+                    className="rounded-xl border border-zinc-200/90 bg-white/90 px-4 py-3 text-sm font-semibold text-zinc-700 transition-colors hover:border-emerald-300 hover:text-emerald-800"
+                  >
+                    Log out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      startClose();
+                      setTimeout(() => openAuthModal("login"), 150);
+                    }}
+                    className="rounded-xl px-4 py-3 text-sm font-semibold text-zinc-600 transition-colors hover:bg-zinc-50 hover:text-emerald-800"
+                  >
+                    Log in
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      startClose();
+                      setTimeout(() => openAuthModal("signup"), 150);
+                    }}
+                    className="rounded-xl bg-emerald-950 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-900"
+                  >
+                    Sign up
+                  </button>
+                </>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 }

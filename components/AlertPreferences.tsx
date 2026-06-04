@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   REGION_OPTIONS,
   SECTOR_OPTIONS,
@@ -104,11 +105,11 @@ export function AlertPreferences() {
                   key={sector}
                   type="button"
                   onClick={() => toggleSector(sector)}
-                  className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-                    active
-                      ? "bg-emerald-600 text-white"
-                      : "bg-emerald-50 text-emerald-900 ring-1 ring-emerald-200/80 hover:bg-emerald-100"
-                  }`}
+                  className={`touch-target rounded-full px-3 py-2 text-xs font-semibold transition-colors sm:py-1 ${
+                     active
+                       ? "bg-emerald-600 text-white"
+                       : "bg-emerald-50 text-emerald-900 ring-1 ring-emerald-200/80 hover:bg-emerald-100"
+                   }`}
                 >
                   {sector}
                 </button>
@@ -127,11 +128,11 @@ export function AlertPreferences() {
                   key={region}
                   type="button"
                   onClick={() => toggleRegion(region)}
-                  className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-                    active
-                      ? "bg-sky-600 text-white"
-                      : "bg-sky-50 text-sky-900 ring-1 ring-sky-200/80 hover:bg-sky-100"
-                  }`}
+                  className={`touch-target rounded-full px-3 py-2 text-xs font-semibold transition-colors sm:py-1 ${
+                     active
+                       ? "bg-sky-600 text-white"
+                       : "bg-sky-50 text-sky-900 ring-1 ring-sky-200/80 hover:bg-sky-100"
+                   }`}
                 >
                   {region}
                 </button>
@@ -146,11 +147,22 @@ export function AlertPreferences() {
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="rounded-full bg-emerald-950 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-900 disabled:opacity-60"
+          className="touch-target rounded-full bg-emerald-950 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-900 disabled:opacity-60"
         >
           {saving ? "Saving…" : "Save preferences"}
         </button>
-        {message && <p className="text-sm text-emerald-700">{message}</p>}
+        <AnimatePresence mode="popLayout">
+          {message && (
+            <motion.p
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -5 }}
+              className="text-sm text-emerald-700"
+            >
+              {message}
+            </motion.p>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
