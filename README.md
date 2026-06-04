@@ -170,12 +170,12 @@ UNEP uses Playwright when httpx is blocked (Cloudflare). Default sources: fundin
 
 ### GitHub Actions
 
-Repository secrets (Settings → Secrets and variables → Actions):
+Repository secrets (Settings → Secrets and variables → Actions — **required**; the workflow fails immediately if either is missing):
 
 | Secret | Value |
 |--------|--------|
-| `SUPABASE_URL` | Same as `NEXT_PUBLIC_SUPABASE_URL` |
-| `SUPABASE_SERVICE_ROLE_KEY` | Service role key |
+| `SUPABASE_URL` | Project URL (no `/rest/v1` suffix). You may use secret name `NEXT_PUBLIC_SUPABASE_URL` instead if you already defined it for the app. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role key from Supabase Dashboard → Project Settings → API |
 
 Workflow: [`.github/workflows/scrape.yml`](.github/workflows/scrape.yml) — weekly cron `0 0 * * 0` (Sunday midnight UTC) and manual dispatch.
 

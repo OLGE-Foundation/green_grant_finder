@@ -9,10 +9,25 @@ jobs:
   scrape-and-update:
     name: Run Scraper Pipeline
     runs-on: ubuntu-latest
+    env:
+      # Map secret names exactly as stored in the repo (see Settings → Secrets and variables → Actions).
+      # supabase_client.py reads SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL from the environment.
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
+      - name: Verify Supabase secrets
+        run: |
+          if { [ -z "$SUPABASE_URL" ] && [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; } || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::Missing GitHub Actions secrets. Add at least one URL secret and the service role key:"
+            echo "::error::  SUPABASE_URL  or  NEXT_PUBLIC_SUPABASE_URL  (project URL, no /rest/v1 suffix)"
+            echo "::error::  SUPABASE_SERVICE_ROLE_KEY"
+            exit 1
+          fi
 
       - name: Setup Python 3.11
         uses: actions/setup-python@v5
@@ -27,7 +42,4 @@ jobs:
         run: playwright install --with-deps chromium
 
       - name: Execute Scraper Engine
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: python scraper/scraper.py
