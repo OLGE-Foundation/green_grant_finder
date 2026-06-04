@@ -25,9 +25,15 @@ A Next.js app for discovering **approved** green funding opportunities. Users se
 - **`/submit`** — multi-step provider form; inserts grants with `status = 'pending'` and `source = 'provider'`.
 - **Weekly digest cron** at `GET /api/cron/weekly-digest` (Resend).
 
+### Phase 3 — Automated grant scraping
+- **Python scraper** in [`scraper/`](scraper/) (UNEP HTML, GlobalGiving JSON, Climateworks Playwright).
+- **Fingerprint deduplication** via SHA-256 of `title|provider|url` before bulk insert.
+- **GitHub Actions** workflow [`.github/workflows/scrape.yml`](.github/workflows/scrape.yml): Sundays 00:00 UTC + manual `workflow_dispatch`.
+
 ## Prerequisites
 
 - Node.js 20+
+- Python 3.11+ (for local scraper runs)
 - A [Supabase](https://supabase.com/) project
 - (Optional) [Resend](https://resend.com/) account for email digests
 
@@ -73,7 +79,15 @@ In the Supabase SQL editor, run:
 
 This adds `bookmarks`, `alert_preferences`, `profiles`, and extends `grants` with `source`, `contact_email`, `additional_notes`, and `approved_at`.
 
-### 2. Enable Auth
+### 2. Run the Phase 3 migration
+
+In the Supabase SQL editor, run:
+
+[`supabase/migrations/20260604000000_phase3_scraper_fingerprint.sql`](supabase/migrations/20260604000000_phase3_scraper_fingerprint.sql)
+
+This adds `grants.fingerprint` with a unique partial index for scraper deduplication.
+
+### 3. Enable Auth
 
 1. Supabase Dashboard → **Authentication** → **Providers** → enable **Email**.
 2. Set **Site URL** to your app origin (e.g. `http://localhost:3000`).
@@ -81,7 +95,7 @@ This adds `bookmarks`, `alert_preferences`, `profiles`, and extends `grants` wit
 
 If embedding in a WordPress iframe cross-origin, you may need cookie `SameSite=None; Secure` in Supabase auth settings.
 
-### 3. Base grants table
+### 4. Base grants table
 
 If starting fresh, create `grants` first (see migration comments in README Phase 1 section or the migration file). The API expects columns including `title`, `provider`, `description`, `sector`, `region`, `eligibility`, `amount_min`, `amount_max`, `deadline`, `url`, `status`, `created_at`.
 
@@ -120,6 +134,51 @@ curl -H "Authorization: Bearer YOUR_CRON_SECRET" http://localhost:3000/api/cron/
 
 On Vercel, [`vercel.json`](vercel.json) schedules the job for Mondays at 09:00 UTC. Set `CRON_SECRET` in Vercel env vars; Vercel sends it automatically to cron invocations.
 
+## Scraper (Phase 3)
+
+Scraped grants are inserted with `status = 'pending'` and `source = 'scraper'`. Review and approve them in Supabase before they appear in the public directory.
+
+### Local run
+
+Create **`scraper/.env`** (or use root `.env.local`):
+
+```env
+SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+```
+
+You can also use `NEXT_PUBLIC_SUPABASE_URL` (same value as the Next.js app). Use the project URL **without** a `/rest/v1` suffix.
+
+**Use an isolated virtualenv** so scraper deps do not conflict with other global tools (`litellm`, `mcp`, etc.):
+
+```powershell
+cd scraper
+.\setup.ps1
+.\.venv\Scripts\Activate.ps1
+python scraper.py
+```
+
+On macOS/Linux: `cd scraper && bash setup.sh && source .venv/bin/activate && python scraper.py`
+
+`setup.ps1` / `setup.sh` install deps in two steps (`supabase` then `httpx==0.27.0`) because `supabase 2.4.0` declares `httpx<0.26` while Python 3.13 needs `0.27` for `create_client`. Warnings about `litellm` / `mcp` only apply if you install into **global** Python — use `scraper/.venv` instead.
+
+Optional overrides: `UNEP_URL` / `UNEP_URLS`, `GLOBALGIVING_API_URL`, `CLIMATEWORKS_URL` / `CLIMATEWORKS_URLS`.
+
+Do not use `https://www.climateworks.org/grants/` — it redirects off-site. Defaults scrape `/programs/` and `/global-grantmaking/`.
+
+UNEP uses Playwright when httpx is blocked (Cloudflare). Default sources: funding-and-partnerships and environment-fund pages.
+
+### GitHub Actions
+
+Repository secrets (Settings → Secrets and variables → Actions):
+
+| Secret | Value |
+|--------|--------|
+| `SUPABASE_URL` | Same as `NEXT_PUBLIC_SUPABASE_URL` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role key |
+
+Workflow: [`.github/workflows/scrape.yml`](.github/workflows/scrape.yml) — weekly cron `0 0 * * 0` (Sunday midnight UTC) and manual dispatch.
+
 ## Scripts
 
 | Command | Purpose |
@@ -148,6 +207,8 @@ lib/
   email/                # Resend + weekly digest
   validation/           # Zod schemas
 supabase/migrations/    # SQL migrations
+scraper/                # Phase 3 Python scrapers + orchestrator
+.github/workflows/      # scrape.yml weekly automation
 ```
 
 ## License

@@ -20,9 +20,16 @@
 # production
 /build
 
+# python
+.venv/
+scraper/.venv/
+__pycache__/
+*.py[cod]
+
 # misc
 .DS_Store
 *.pem
+scraper/test_pipeline.py
 
 # debug
 npm-debug.log*

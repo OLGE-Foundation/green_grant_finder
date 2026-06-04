@@ -1,0 +1,40 @@
+{
+  "grants": [
+    {
+      "title": "Community Solar Microgrid Fund",
+      "provider": "GlobalGiving Climate Alliance",
+      "description": "Supports community-led solar microgrid projects that expand clean energy access in underserved regions.",
+      "amount_min": 25000,
+      "amount_max": 150000,
+      "sector": ["Clean energy"],
+      "region": ["South Asia", "Sub-Saharan Africa"],
+      "eligibility": ["NGOs", "SMEs"],
+      "deadline": "2026-09-30",
+      "url": "https://www.globalgiving.org/projects/community-solar-microgrid-fund"
+    },
+    {
+      "title": "Coastal Mangrove Restoration Grant",
+      "provider": "GlobalGiving Ocean Fund",
+      "description": "Funding for NGOs restoring mangrove ecosystems and building coastal climate resilience.",
+      "amount_min": 10000,
+      "amount_max": 75000,
+      "sector": ["Ocean conservation", "Climate adaptation"],
+      "region": ["Southeast Asia", "Latin America"],
+      "eligibility": ["NGOs"],
+      "deadline": "2026-11-15",
+      "url": "https://www.globalgiving.org/projects/coastal-mangrove-restoration-grant"
+    },
+    {
+      "title": "Agroforestry Innovation Challenge",
+      "provider": "GlobalGiving Sustainable Agriculture Network",
+      "description": "Grants for startups and research institutions piloting agroforestry and regenerative farming models.",
+      "amount_min": 5000,
+      "amount_max": 40000,
+      "sector": ["Sustainable agriculture", "Biodiversity"],
+      "region": ["Global"],
+      "eligibility": ["Startups", "Research institutions"],
+      "deadline": null,
+      "url": "https://www.globalgiving.org/projects/agroforestry-innovation-challenge"
+    }
+  ]
+}
