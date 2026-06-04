@@ -1,30 +1,33 @@
-name: Weekly grant scrape
+name: Weekly Green Grant Scraper
 
 on:
   schedule:
-    - cron: "0 0 * * 0"
-  workflow_dispatch:
+    - cron: "0 0 * * 0" # Runs every Sunday at midnight UTC
+  workflow_dispatch: # Allows manual execution from the GitHub UI
 
 jobs:
-  scrape:
+  scrape-and-update:
+    name: Run Scraper Pipeline
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: "pip" # Replaces the separate cache step cleanly
 
-      - uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: pip-scraper-${{ hashFiles('scraper/requirements.txt') }}
+      - name: Install Dependencies
+        run: pip install -r scraper/requirements.txt
 
-      - run: pip install -r scraper/requirements.txt
+      - name: Install Playwright Browsers
+        run: playwright install --with-deps chromium
 
-      - run: playwright install --with-deps chromium
-
-      - run: python scraper/scraper.py
+      - name: Execute Scraper Engine
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python scraper/scraper.py
