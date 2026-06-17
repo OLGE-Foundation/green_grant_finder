@@ -53,10 +53,25 @@ def parse_globalgiving_payload(data: dict) -> list[dict]:
         if amount_max is not None:
             amount_max = float(amount_max)
 
-        deadline_raw = item.get("deadline")
+        # Feeds are inconsistent about the deadline key; accept the common
+        # aliases and parse whichever is present first.
         deadline = None
-        if isinstance(deadline_raw, str) and deadline_raw.strip():
-            deadline = parse_deadline(deadline_raw.strip())
+        for key in (
+            "deadline",
+            "closing_date",
+            "closingDate",
+            "application_deadline",
+            "applicationDeadline",
+            "due_date",
+            "dueDate",
+            "end_date",
+            "endDate",
+        ):
+            value = item.get(key)
+            if isinstance(value, str) and value.strip():
+                deadline = parse_deadline(value.strip())
+                if deadline:
+                    break
 
         sector = normalize_tags(item.get("sector"), SECTOR_OPTIONS)
         region = normalize_tags(item.get("region"), REGION_OPTIONS)

@@ -6,7 +6,7 @@ from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 from playwright.async_api import async_playwright
 
-from scrapers._helpers import grant_row
+from scrapers._helpers import find_deadline_in_text, grant_row
 
 logger = logging.getLogger(__name__)
 
@@ -80,11 +80,17 @@ def _parse_program_page(html: str, page_url: str) -> dict | None:
             description = text
             break
 
+    # Scan the main content for a deadline-labelled date. Prefer the main
+    # content region but fall back to the whole document.
+    content = soup.select_one("main") or soup.select_one("article") or soup.body or soup
+    deadline = find_deadline_in_text(content.get_text(" ", strip=True))
+
     return grant_row(
         title=title,
         provider="Climateworks Foundation",
         description=description,
         url=page_url,
+        deadline=deadline,
     )
 
 

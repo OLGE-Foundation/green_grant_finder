@@ -16,6 +16,7 @@ export function AppHeader() {
   const pathname = usePathname();
   const { user, loading, openAuthModal, signOut } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const isAdmin = Boolean(user?.app_metadata?.is_admin);
 
   const startClose = useCallback(() => setIsOpen(false), []);
 
@@ -62,6 +63,18 @@ export function AppHeader() {
               </Link>
             );
           })}
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors sm:text-sm ${
+                pathname.startsWith("/admin")
+                  ? "bg-amber-100 text-amber-900 ring-1 ring-amber-200/80"
+                  : "text-zinc-500 ring-1 ring-zinc-200/70 hover:bg-white/80 hover:text-amber-800"
+              }`}
+            >
+              Admin
+            </Link>
+          )}
         </nav>
 
         {/* Desktop auth buttons: visible at md and above */}
@@ -154,6 +167,19 @@ export function AppHeader() {
                   </Link>
                 );
               })}
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  onClick={startClose}
+                  className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
+                    pathname.startsWith("/admin")
+                      ? "bg-amber-100 text-amber-900"
+                      : "text-zinc-500 hover:bg-zinc-50 hover:text-amber-800"
+                  }`}
+                >
+                  Admin
+                </Link>
+              )}
             </nav>
 
             <div className="mt-3 flex flex-col gap-2 border-t border-zinc-100 pt-3">

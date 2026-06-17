@@ -1,6 +1,6 @@
 export type Grant = {
   id: string;
-  status: string;
+  status: "pending" | "approved" | "rejected" | string;
   title: string;
   provider_name: string | null;
   provider?: string | null;
@@ -21,4 +21,7 @@ export type Grant = {
   contact_email?: string | null;
   additional_notes?: string | null;
   approved_at?: string | null;
+  rejection_reason?: string | null;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
 };

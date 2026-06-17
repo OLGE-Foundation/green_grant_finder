@@ -117,18 +117,135 @@ def parse_amount_range(text: str | None) -> tuple[float | None, float | None]:
     return value, value
 
 
+# --- Deadline parsing -------------------------------------------------------
+# Scrapers rarely hand us a clean "2026-09-30". They hand us the surrounding
+# text — "Application deadline: 30 September 2026", "Closes Sept 30th, 2026",
+# "Due by 09/30/2026" — so the parser has to *find* a date inside arbitrary
+# prose and normalise it to ISO (YYYY-MM-DD), or give up and return None.
+
+MONTHS: dict[str, int] = {
+    "jan": 1, "january": 1,
+    "feb": 2, "february": 2,
+    "mar": 3, "march": 3,
+    "apr": 4, "april": 4,
+    "may": 5,
+    "jun": 6, "june": 6,
+    "jul": 7, "july": 7,
+    "aug": 8, "august": 8,
+    "sep": 9, "sept": 9, "september": 9,
+    "oct": 10, "october": 10,
+    "nov": 11, "november": 11,
+    "dec": 12, "december": 12,
+}
+
+_MONTH_ALT = "|".join(sorted(MONTHS, key=len, reverse=True))
+
+# 30 September 2026 / 30th Sept, 2026 / 1 of June 2026
+_DAY_MONTH_YEAR = re.compile(
+    rf"\b(\d{{1,2}})(?:st|nd|rd|th)?\s+(?:of\s+)?({_MONTH_ALT})\.?,?\s+(\d{{4}})\b",
+    re.IGNORECASE,
+)
+# September 30, 2026 / Sept 30th 2026 / Sep. 30 2026
+_MONTH_DAY_YEAR = re.compile(
+    rf"\b({_MONTH_ALT})\.?\s+(\d{{1,2}})(?:st|nd|rd|th)?,?\s+(\d{{4}})\b",
+    re.IGNORECASE,
+)
+# 2026-09-30 (also tolerates 2026/09/30)
+_ISO = re.compile(r"\b(\d{4})[-/](\d{1,2})[-/](\d{1,2})\b")
+# 30/09/2026 or 09/30/2026 or 30.09.2026 (ambiguous day/month order)
+_NUMERIC = re.compile(r"\b(\d{1,2})[/.](\d{1,2})[/.](\d{4})\b")
+
+# Phrases that introduce a deadline. Ordered most- to least-specific so the
+# most explicit label wins when several appear in the same blob of text.
+DEADLINE_LABELS: tuple[str, ...] = (
+    "application deadline",
+    "submission deadline",
+    "applications close",
+    "applications due",
+    "closing date",
+    "deadline",
+    "apply by",
+    "due date",
+    "due by",
+    "closes on",
+    "closes",
+    "closing",
+    "end date",
+    "expires",
+    "expiry",
+)
+
+
+def _valid_ymd(year: int, month: int, day: int) -> str | None:
+    try:
+        return datetime(year, month, day).strftime("%Y-%m-%d")
+    except ValueError:
+        return None
+
+
+def _date_from_match(pattern: re.Pattern, match: re.Match) -> str | None:
+    if pattern is _ISO:
+        return _valid_ymd(int(match.group(1)), int(match.group(2)), int(match.group(3)))
+    if pattern is _DAY_MONTH_YEAR:
+        return _valid_ymd(int(match.group(3)), MONTHS[match.group(2).lower()], int(match.group(1)))
+    if pattern is _MONTH_DAY_YEAR:
+        return _valid_ymd(int(match.group(3)), MONTHS[match.group(1).lower()], int(match.group(2)))
+    if pattern is _NUMERIC:
+        a, b, year = int(match.group(1)), int(match.group(2)), int(match.group(3))
+        # Ambiguous order. If one value can't be a month it must be the day;
+        # otherwise default to day-first (DD/MM), the international convention.
+        if a > 12 >= b:
+            day, month = a, b
+        elif b > 12 >= a:
+            day, month = b, a
+        else:
+            day, month = a, b
+        return _valid_ymd(year, month, day)
+    return None
+
+
+def _first_date(text: str) -> str | None:
+    """Return the first parseable date anywhere in *text* as ISO, else None."""
+    best: tuple[int, str] | None = None
+    for pattern in (_ISO, _DAY_MONTH_YEAR, _MONTH_DAY_YEAR, _NUMERIC):
+        for match in pattern.finditer(text):
+            iso = _date_from_match(pattern, match)
+            if iso and (best is None or match.start() < best[0]):
+                best = (match.start(), iso)
+    return best[1] if best else None
+
+
 def parse_deadline(text: str | None) -> str | None:
+    """Normalise a date found in *text* to ISO (YYYY-MM-DD), or None.
+
+    Accepts a clean date string ("2026-09-30") or a date embedded in prose
+    ("Deadline: 30 September 2026"). Returns None when no date is present —
+    never guesses.
+    """
     if not text:
         return None
-    cleaned = text.strip()
-    for fmt in ("%Y-%m-%d", "%d %B %Y", "%B %d, %Y", "%d/%m/%Y", "%m/%d/%Y"):
-        try:
-            return datetime.strptime(cleaned, fmt).strftime("%Y-%m-%d")
-        except ValueError:
-            continue
-    iso_match = re.search(r"(\d{4}-\d{2}-\d{2})", cleaned)
-    if iso_match:
-        return iso_match.group(1)
+    return _first_date(text.strip())
+
+
+def find_deadline_in_text(text: str | None) -> str | None:
+    """Locate a deadline in a larger blob of text (a description, a page body).
+
+    Prefers a date that follows a deadline label ("closing date", "apply by",
+    …) so an unrelated date elsewhere in the text isn't mistaken for the
+    deadline. Falls back to None when no label-anchored date is found.
+    """
+    if not text:
+        return None
+    lowered = text.lower()
+    for label in DEADLINE_LABELS:
+        start = lowered.find(label)
+        while start != -1:
+            # Look in the window just after the label for a date.
+            window = text[start + len(label): start + len(label) + 80]
+            iso = _first_date(window)
+            if iso:
+                return iso
+            start = lowered.find(label, start + 1)
     return None
 
 

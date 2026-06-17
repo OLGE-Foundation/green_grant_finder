@@ -11,6 +11,7 @@ from scrapers._helpers import (
     ELIGIBILITY_OPTIONS,
     REGION_OPTIONS,
     SECTOR_OPTIONS,
+    find_deadline_in_text,
     grant_row,
     normalize_tags,
     parse_amount_range,
@@ -189,13 +190,19 @@ def _parse_grant_item(item, base_url: str) -> dict | None:
     deadline_text = None
     for node in item.select(".meta, .grant-meta, li, span"):
         text = node.get_text(" ", strip=True).lower()
-        if "deadline" in text or "closing" in text:
+        if not deadline_text and any(
+            k in text for k in ("deadline", "closing", "due", "apply by", "expires")
+        ):
             deadline_text = node.get_text(" ", strip=True)
         if any(k in text for k in ("fund", "amount", "grant", "$", "usd", "eur")):
             amount_text = node.get_text(" ", strip=True)
 
     amount_min, amount_max = parse_amount_range(amount_text)
-    deadline = parse_deadline(deadline_text)
+    # Try the labelled node first, then fall back to scanning the whole item
+    # for any deadline-labelled date we may have missed.
+    deadline = parse_deadline(deadline_text) or find_deadline_in_text(
+        item.get_text(" ", strip=True)
+    )
 
     return grant_row(
         title=title,
@@ -251,6 +258,7 @@ def _parse_funding_h2_sections(root, base_url: str) -> list[dict]:
                     break
 
         amount_min, amount_max = parse_amount_range(description)
+        block_text = block.get_text(" ", strip=True) if block else description
         grants.append(
             grant_row(
                 title=title,
@@ -259,7 +267,7 @@ def _parse_funding_h2_sections(root, base_url: str) -> list[dict]:
                 url=url,
                 amount_min=amount_min,
                 amount_max=amount_max,
-                deadline=parse_deadline(description),
+                deadline=find_deadline_in_text(block_text),
             )
         )
     return grants
@@ -315,6 +323,7 @@ def _parse_article_fallback(article, base_url: str) -> dict | None:
         provider=provider,
         description=description,
         url=url,
+        deadline=find_deadline_in_text(article.get_text(" ", strip=True)),
     )
 
 
@@ -327,7 +336,10 @@ def _parse_h3_fallback(soup: BeautifulSoup, base_url: str) -> list[dict]:
         sibling = heading.find_next_sibling()
         description = title
         url = None
+        section_text = title
         while sibling is not None and sibling.name not in ("h2", "h3"):
+            if hasattr(sibling, "get_text"):
+                section_text += " " + sibling.get_text(" ", strip=True)
             if sibling.name == "p" and (not description or description == title):
                 description = sibling.get_text(strip=True) or title
             if hasattr(sibling, "select_one"):
@@ -347,6 +359,7 @@ def _parse_h3_fallback(soup: BeautifulSoup, base_url: str) -> list[dict]:
                     provider="UNEP",
                     description=description,
                     url=url,
+                    deadline=find_deadline_in_text(section_text),
                 )
             )
     return grants
