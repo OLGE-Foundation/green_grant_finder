@@ -2,6 +2,34 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendGrantDecisionEmail } from "@/lib/email/grant-decision";
+import { safeHttpUrl } from "@/lib/grants/url";
+import {
+  ELIGIBILITY_OPTIONS,
+  REGION_OPTIONS,
+  SECTOR_OPTIONS,
+} from "@/lib/grants/constants";
+
+const SECTOR_SET = new Set<string>(SECTOR_OPTIONS);
+const REGION_SET = new Set<string>(REGION_OPTIONS);
+const ELIGIBILITY_SET = new Set<string>(ELIGIBILITY_OPTIONS);
+const EDITABLE_STATUSES = new Set(["approved", "pending", "rejected"]);
+
+function sanitizeOptions(input: unknown, allowed: Set<string>): string[] {
+  if (!Array.isArray(input)) return [];
+  return input.filter(
+    (v): v is string => typeof v === "string" && allowed.has(v),
+  );
+}
+
+// Shared admin gate for the non-PATCH handlers.
+async function requireAdmin() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user || !user.app_metadata?.is_admin) return null;
+  return user;
+}
 
 export async function PATCH(
   request: NextRequest,
@@ -98,4 +126,147 @@ export async function PATCH(
     success: true,
     status: action === "approve" ? "approved" : "rejected",
   });
+}
+
+// Edit an existing grant's content. Used by the admin panel to manage grants
+// that are already approved (or any status). The admin client bypasses RLS.
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const user = await requireAdmin();
+  if (!user) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const b = body as Record<string, unknown>;
+  const updates: Record<string, unknown> = {};
+
+  if (typeof b.title === "string") {
+    const title = b.title.trim();
+    if (!title) {
+      return NextResponse.json(
+        { error: "Title cannot be empty" },
+        { status: 400 },
+      );
+    }
+    updates.title = title.slice(0, 200);
+  }
+  if (typeof b.provider === "string") {
+    updates.provider = b.provider.trim().slice(0, 200) || null;
+  }
+  if (typeof b.description === "string") {
+    updates.description = b.description.trim().slice(0, 5000) || null;
+  }
+  for (const key of ["amount_min", "amount_max"] as const) {
+    if (key in b) {
+      const v = b[key];
+      if (v === null || v === "") {
+        updates[key] = null;
+      } else if (typeof v === "number" && Number.isFinite(v)) {
+        updates[key] = v;
+      } else if (typeof v === "string" && v.trim() && Number.isFinite(Number(v))) {
+        updates[key] = Number(v);
+      } else {
+        return NextResponse.json(
+          { error: `${key} must be a number or empty` },
+          { status: 400 },
+        );
+      }
+    }
+  }
+  if ("deadline" in b) {
+    const v = b.deadline;
+    updates.deadline = typeof v === "string" && v.trim() ? v.trim() : null;
+  }
+  if (typeof b.url === "string") {
+    const raw = b.url.trim();
+    if (!raw) {
+      updates.url = null;
+    } else {
+      const safe = safeHttpUrl(raw);
+      if (!safe) {
+        return NextResponse.json(
+          { error: "URL must start with http:// or https://" },
+          { status: 400 },
+        );
+      }
+      updates.url = safe;
+    }
+  }
+  if ("sector" in b) updates.sector = sanitizeOptions(b.sector, SECTOR_SET);
+  if ("region" in b) updates.region = sanitizeOptions(b.region, REGION_SET);
+  if ("eligibility" in b) {
+    updates.eligibility = sanitizeOptions(b.eligibility, ELIGIBILITY_SET);
+  }
+  if (typeof b.status === "string" && EDITABLE_STATUSES.has(b.status)) {
+    updates.status = b.status;
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json(
+      { error: "No valid fields to update" },
+      { status: 400 },
+    );
+  }
+
+  const { id } = await params;
+  const adminSupabase = createAdminClient();
+  const { data, error } = await adminSupabase
+    .from("grants")
+    .update(updates)
+    .eq("id", id)
+    .select("id")
+    .single();
+
+  if (error) {
+    if (error.code === "PGRST116") {
+      return NextResponse.json({ error: "Grant not found" }, { status: 404 });
+    }
+    console.error("[api/admin/grants] PUT error:", error);
+    return NextResponse.json(
+      { error: "Failed to update grant" },
+      { status: 500 },
+    );
+  }
+
+  return NextResponse.json({ success: true, id: data.id });
+}
+
+// Permanently delete a grant.
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const user = await requireAdmin();
+  if (!user) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { id } = await params;
+  const adminSupabase = createAdminClient();
+  const { error, count } = await adminSupabase
+    .from("grants")
+    .delete({ count: "exact" })
+    .eq("id", id);
+
+  if (error) {
+    console.error("[api/admin/grants] DELETE error:", error);
+    return NextResponse.json(
+      { error: "Failed to delete grant" },
+      { status: 500 },
+    );
+  }
+  if (!count) {
+    return NextResponse.json({ error: "Grant not found" }, { status: 404 });
+  }
+
+  return NextResponse.json({ success: true });
 }
