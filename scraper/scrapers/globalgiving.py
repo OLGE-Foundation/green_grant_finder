@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-from pathlib import Path
 
 import httpx
 
@@ -15,10 +14,6 @@ from scrapers._helpers import (
 )
 
 logger = logging.getLogger(__name__)
-
-FIXTURE_PATH = (
-    Path(__file__).resolve().parents[1] / "fixtures" / "globalgiving_feed.json"
-)
 
 
 def parse_globalgiving_payload(data: dict) -> list[dict]:
@@ -98,21 +93,23 @@ def parse_globalgiving_payload(data: dict) -> list[dict]:
 def scrape() -> list[dict]:
     env_url = os.environ.get("GLOBALGIVING_API_URL", "").strip()
 
+    # No mock/fixture fallback: only scrape a real feed when one is configured.
+    if not env_url:
+        logger.info(
+            "GlobalGiving scraper skipped: set GLOBALGIVING_API_URL to enable it."
+        )
+        return []
+
     try:
-        if env_url:
-            logger.info("GlobalGiving scraper fetching %s", env_url)
-            response = httpx.get(env_url, timeout=30.0, follow_redirects=True)
-            response.raise_for_status()
-            data = response.json()
-        else:
-            logger.info("GlobalGiving scraper loading fixture %s", FIXTURE_PATH)
-            with FIXTURE_PATH.open(encoding="utf-8") as handle:
-                data = json.load(handle)
+        logger.info("GlobalGiving scraper fetching %s", env_url)
+        response = httpx.get(env_url, timeout=30.0, follow_redirects=True)
+        response.raise_for_status()
+        data = response.json()
     except httpx.HTTPError as exc:
         logger.error("GlobalGiving HTTP request failed: %s", exc)
         return []
-    except (OSError, ValueError, json.JSONDecodeError) as exc:
-        logger.error("GlobalGiving JSON load failed: %s", exc)
+    except (ValueError, json.JSONDecodeError) as exc:
+        logger.error("GlobalGiving JSON parse failed: %s", exc)
         return []
 
     grants = parse_globalgiving_payload(data)
