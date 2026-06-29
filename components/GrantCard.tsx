@@ -4,6 +4,7 @@ import type { CSSProperties } from "react";
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import type { Grant } from "@/types/grant";
+import { safeHttpUrl } from "@/lib/grants/url";
 
 function formatFundingRange(min: number | null, max: number | null): string {
   const fmt = (n: number) =>
@@ -46,7 +47,7 @@ function normalizeGrant(grant: Grant) {
     minAmount: grant.funding_amount_min ?? grant.amount_min ?? null,
     maxAmount: grant.funding_amount_max ?? grant.amount_max ?? null,
     description: grant.short_description ?? grant.description ?? "",
-    applicationUrl: grant.application_url ?? grant.url ?? null,
+    applicationUrl: safeHttpUrl(grant.application_url ?? grant.url),
   };
 }
 

@@ -19,7 +19,10 @@ export async function GET() {
 
   if (error) {
     console.error("[api/bookmarks] GET error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to load bookmarks" },
+      { status: 500 },
+    );
   }
 
   return NextResponse.json({
@@ -59,7 +62,10 @@ export async function POST(request: Request) {
 
   if (checkError) {
     console.error("[api/bookmarks] check error:", checkError);
-    return NextResponse.json({ error: checkError.message }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to update bookmark" },
+      { status: 500 },
+    );
   }
 
   if (existing) {
@@ -70,7 +76,11 @@ export async function POST(request: Request) {
       .eq("grant_id", grantId);
 
     if (deleteError) {
-      return NextResponse.json({ error: deleteError.message }, { status: 500 });
+      console.error("[api/bookmarks] delete error:", deleteError);
+      return NextResponse.json(
+        { error: "Failed to update bookmark" },
+        { status: 500 },
+      );
     }
     return NextResponse.json({ saved: false });
   }
@@ -82,7 +92,10 @@ export async function POST(request: Request) {
 
   if (insertError) {
     console.error("[api/bookmarks] insert error:", insertError);
-    return NextResponse.json({ error: insertError.message }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to update bookmark" },
+      { status: 500 },
+    );
   }
 
   return NextResponse.json({ saved: true });

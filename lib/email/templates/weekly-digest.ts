@@ -1,3 +1,6 @@
+import { safeHttpUrl } from "@/lib/grants/url";
+import { escapeHtml } from "@/lib/email/escape";
+
 type DigestGrant = {
   id: string;
   title: string;
@@ -21,14 +24,18 @@ export function renderWeeklyDigestHtml(
             year: "numeric",
           })
         : "No deadline";
-      const applyLink = grant.url
-        ? `<a href="${grant.url}" style="color:#047857;font-weight:600">Apply</a>`
+      const safeUrl = safeHttpUrl(grant.url);
+      const applyLink = safeUrl
+        ? `<a href="${escapeHtml(safeUrl)}" style="color:#047857;font-weight:600">Apply</a>`
         : "";
+      const tags = [...(grant.sector ?? []), ...(grant.region ?? [])]
+        .map(escapeHtml)
+        .join(", ");
       return `
         <li style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #e4e4e7">
-          <strong style="color:#064e3b">${grant.title}</strong><br/>
-          <span style="color:#52525b;font-size:14px">${grant.provider ?? "Unknown provider"} · ${deadline}</span><br/>
-          <span style="color:#71717a;font-size:13px">${(grant.sector ?? []).join(", ")} · ${(grant.region ?? []).join(", ")}</span><br/>
+          <strong style="color:#064e3b">${escapeHtml(grant.title)}</strong><br/>
+          <span style="color:#52525b;font-size:14px">${escapeHtml(grant.provider ?? "Unknown provider")} · ${escapeHtml(deadline)}</span><br/>
+          <span style="color:#71717a;font-size:13px">${tags}</span><br/>
           ${applyLink}
         </li>`;
     })
@@ -40,7 +47,7 @@ export function renderWeeklyDigestHtml(
     <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;padding:24px;border:1px solid #d1fae5">
       <h1 style="color:#064e3b;font-size:20px;margin:0 0 8px">Weekly grant digest</h1>
       <p style="color:#52525b;font-size:14px;margin:0 0 20px">
-        Hi ${userEmail}, here are newly approved grants matching your interests:
+        Hi ${escapeHtml(userEmail)}, here are newly approved grants matching your interests:
       </p>
       <ul style="list-style:none;padding:0;margin:0">${items}</ul>
       <p style="color:#71717a;font-size:12px;margin-top:24px">

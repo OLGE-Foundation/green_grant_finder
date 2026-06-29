@@ -7,10 +7,22 @@ import {
 
 export const submitGrantSchema = z
   .object({
-    title: z.string().trim().min(1, "Grant title is required"),
-    organisationName: z.string().trim().min(1, "Organisation name is required"),
-    contactEmail: z.string().trim().email("Valid contact email is required"),
-    description: z.string().trim().min(1, "Grant description is required"),
+    title: z.string().trim().min(1, "Grant title is required").max(200),
+    organisationName: z
+      .string()
+      .trim()
+      .min(1, "Organisation name is required")
+      .max(200),
+    contactEmail: z
+      .string()
+      .trim()
+      .max(254)
+      .email("Valid contact email is required"),
+    description: z
+      .string()
+      .trim()
+      .min(1, "Grant description is required")
+      .max(5000),
     amountMin: z
       .union([z.number().min(0), z.literal(""), z.null(), z.undefined()])
       .optional()
@@ -32,9 +44,17 @@ export const submitGrantSchema = z
     eligibility: z
       .array(z.enum(ELIGIBILITY_OPTIONS))
       .min(1, "Select at least one applicant type"),
-    applicationUrl: z.string().trim().url("Valid application URL is required"),
+    applicationUrl: z
+      .string()
+      .trim()
+      .max(2000)
+      .url("Valid application URL is required")
+      .refine((u) => /^https?:\/\//i.test(u), {
+        message: "Application URL must start with http:// or https://",
+      }),
     additionalNotes: z
       .string()
+      .max(2000)
       .optional()
       .transform((v) => (v?.trim() ? v.trim() : null)),
   })

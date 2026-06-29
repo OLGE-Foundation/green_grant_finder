@@ -33,13 +33,18 @@ export async function POST(request: Request) {
 
     if (error) {
       console.error("[api/grants/submit] insert error:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to submit grant" },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json({ id: data.id }, { status: 201 });
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Failed to submit grant";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("[api/grants/submit] error:", err);
+    return NextResponse.json(
+      { error: "Failed to submit grant" },
+      { status: 500 },
+    );
   }
 }

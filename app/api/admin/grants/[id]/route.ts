@@ -67,7 +67,10 @@ export async function PATCH(
       );
     }
     console.error("[api/admin/grants] update error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to update grant" },
+      { status: 500 },
+    );
   }
 
   if (!grant) {

@@ -38,22 +38,11 @@ export async function GET(request: NextRequest) {
   const { data, error } = await query;
 
   if (error) {
+    // Log full detail server-side; return a generic message so internal schema
+    // / PostgREST details are not disclosed to clients.
     console.error("[api/grants] Supabase error:", error);
-    const isBadUrlPath =
-      error.code === "PGRST125" ||
-      /invalid path/i.test(error.message ?? "");
-
     return NextResponse.json(
-      {
-        error: error.message,
-        code: error.code,
-        details: error.details,
-        hint:
-          error.hint ??
-          (isBadUrlPath
-            ? "Use the Supabase project URL without a /rest/v1 suffix."
-            : undefined),
-      },
+      { error: "Failed to load grants" },
       { status: 500 },
     );
   }

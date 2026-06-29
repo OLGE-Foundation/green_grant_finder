@@ -1,3 +1,5 @@
+import { escapeHtml } from "@/lib/email/escape";
+
 export function renderGrantDecisionHtml(
   grantTitle: string,
   action: "approve" | "reject",
@@ -15,7 +17,7 @@ export function renderGrantDecisionHtml(
         ${approved ? "Your grant has been approved ✓" : "Update on your grant submission"}
       </h1>
       <p style="color:#52525b;font-size:14px;margin:0 0 16px">
-        <strong>${grantTitle}</strong> has been
+        <strong>${escapeHtml(grantTitle)}</strong> has been
         ${
           approved
             ? "approved and is now live in the Green Grant Finder directory."
@@ -25,7 +27,7 @@ export function renderGrantDecisionHtml(
       ${
         !approved && rejectionReason
           ? `<div style="background:#fef2f2;border-radius:8px;padding:12px;margin-bottom:16px">
-               <p style="color:#7f1d1d;font-size:13px;margin:0"><strong>Reason:</strong> ${rejectionReason}</p>
+               <p style="color:#7f1d1d;font-size:13px;margin:0"><strong>Reason:</strong> ${escapeHtml(rejectionReason)}</p>
              </div>`
           : ""
       }

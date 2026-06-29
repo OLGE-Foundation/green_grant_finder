@@ -20,7 +20,11 @@ export async function GET(request: NextRequest) {
     .eq("user_id", user.id);
 
   if (bookmarkError) {
-    return NextResponse.json({ error: bookmarkError.message }, { status: 500 });
+    console.error("[api/grants/saved] bookmark error:", bookmarkError);
+    return NextResponse.json(
+      { error: "Failed to load saved grants" },
+      { status: 500 },
+    );
   }
 
   const grantIds = (bookmarks ?? []).map((b) => b.grant_id as string);
@@ -41,7 +45,10 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     console.error("[api/grants/saved] error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to load saved grants" },
+      { status: 500 },
+    );
   }
 
   return NextResponse.json(data ?? []);
