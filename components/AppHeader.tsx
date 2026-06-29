@@ -20,10 +20,14 @@ export function AppHeader() {
 
   const startClose = useCallback(() => setIsOpen(false), []);
 
-  // Close menu on route change
-  useEffect(() => {
+  // Close the mobile menu on route change (incl. browser back/forward).
+  // Adjusting state during render is React's recommended alternative to a
+  // synchronous setState inside an effect.
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
     setIsOpen(false);
-  }, [pathname]);
+  }
 
   // Close menu on Escape
   useEffect(() => {

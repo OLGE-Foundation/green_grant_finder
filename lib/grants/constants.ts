@@ -1,3 +1,10 @@
+// Columns safe to expose on the public directory API. Deliberately excludes
+// submitter PII and internal review fields: contact_email, additional_notes,
+// rejection_reason, reviewed_by, reviewed_at, fingerprint. Keep this in sync
+// with the fields normalizeGrantRecord() reads on the client.
+export const PUBLIC_GRANT_COLUMNS =
+  "id, status, title, provider, description, sector, region, eligibility, amount_min, amount_max, deadline, url, created_at, source, approved_at";
+
 export const SECTOR_OPTIONS = [
   "Clean energy",
   "Biodiversity",

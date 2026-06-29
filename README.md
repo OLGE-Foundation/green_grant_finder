@@ -43,7 +43,7 @@ A Next.js app for discovering **approved** green funding opportunities. Users se
 npm install
 ```
 
-Create **`.env.local`** in the project root:
+Copy **`.env.example`** to **`.env.local`** (preferred) or **`.env`** in the project root and fill in real values — Next.js loads both, with `.env.local` taking precedence:
 
 ```env
 # Supabase (required)
@@ -87,7 +87,19 @@ In the Supabase SQL editor, run:
 
 This adds `grants.fingerprint` with a unique partial index for scraper deduplication.
 
-### 3. Enable Auth
+### 3. Run the Phase 4 migration (admin approval)
+
+[`supabase/migrations/20260617000000_phase4_admin_approval.sql`](supabase/migrations/20260617000000_phase4_admin_approval.sql)
+
+Adds `rejection_reason`, `reviewed_by`, `reviewed_at` audit columns and admin RLS policies. Designate the first admin via the Supabase Dashboard (Authentication → Users → Edit → App Metadata → `{"is_admin": true}`) or `npm run make-admin your@email.com`.
+
+### 4. Run the Phase 5 migration (RLS hardening)
+
+[`supabase/migrations/20260629000000_grants_rls_public_read.sql`](supabase/migrations/20260629000000_grants_rls_public_read.sql)
+
+Enables Row-Level Security on `grants` so the database itself enforces public read access to approved grants only. Safe to run on the existing app (service-role writes and admin reads are unaffected).
+
+### 5. Enable Auth
 
 1. Supabase Dashboard → **Authentication** → **Providers** → enable **Email**.
 2. Set **Site URL** to your app origin (e.g. `http://localhost:3000`).
@@ -95,7 +107,7 @@ This adds `grants.fingerprint` with a unique partial index for scraper deduplica
 
 If embedding in a WordPress iframe cross-origin, you may need cookie `SameSite=None; Secure` in Supabase auth settings.
 
-### 4. Base grants table
+### 6. Base grants table
 
 If starting fresh, create `grants` first (see migration comments in README Phase 1 section or the migration file). The API expects columns including `title`, `provider`, `description`, `sector`, `region`, `eligibility`, `amount_min`, `amount_max`, `deadline`, `url`, `status`, `created_at`.
 
@@ -186,7 +198,9 @@ Workflow: [`.github/workflows/scrape.yml`](.github/workflows/scrape.yml) — wee
 | `npm run dev` | Development server |
 | `npm run build` | Production build |
 | `npm run start` | Run production server |
-| `npm run lint` | ESLint |
+| `npm run lint` | ESLint (scoped to `app`, `components`, `lib`, `scripts`, `proxy.ts`) |
+| `npm test` | Vitest unit tests (grant filters, normalize, query) |
+| `npm run make-admin <email>` | Grant a user admin rights via `app_metadata` |
 
 ## Project layout
 

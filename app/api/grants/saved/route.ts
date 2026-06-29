@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { PUBLIC_GRANT_COLUMNS } from "@/lib/grants/constants";
 import { applyGrantListFilters } from "@/lib/grants/query";
 import { createClient } from "@/lib/supabase/server";
 
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   let query = supabase
     .from("grants")
-    .select("*")
+    .select(PUBLIC_GRANT_COLUMNS)
     .eq("status", "approved")
     .in("id", grantIds);
 

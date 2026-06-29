@@ -29,7 +29,6 @@ __pycache__/
 # misc
 .DS_Store
 *.pem
-scraper/test_pipeline.py
 
 # debug
 npm-debug.log*
@@ -39,6 +38,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ...but the example template is committed so contributors know what to set
+!.env.example
 
 # vercel
 .vercel

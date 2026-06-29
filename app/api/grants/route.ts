@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
+import { PUBLIC_GRANT_COLUMNS } from "@/lib/grants/constants";
 import { applyGrantListFilters } from "@/lib/grants/query";
 import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/supabase/config";
 
@@ -28,7 +29,10 @@ export async function GET(request: NextRequest) {
   }
 
   const { searchParams } = new URL(request.url);
-  let query = supabase.from("grants").select("*").eq("status", "approved");
+  let query = supabase
+    .from("grants")
+    .select(PUBLIC_GRANT_COLUMNS)
+    .eq("status", "approved");
   query = applyGrantListFilters(query, searchParams);
 
   const { data, error } = await query;
