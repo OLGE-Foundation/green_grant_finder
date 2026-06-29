@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 
@@ -29,6 +30,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const supabase = useMemo(() => createClient(), []);
+  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -78,7 +80,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     setUser(null);
-  }, [supabase]);
+    // Leave any auth-gated page (e.g. /admin) and re-render server components so
+    // protected content (and its data) disappears immediately instead of
+    // lingering until the next manual refresh.
+    router.replace("/");
+    router.refresh();
+  }, [supabase, router]);
 
   const value = useMemo(
     () => ({
