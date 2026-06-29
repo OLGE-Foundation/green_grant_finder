@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
@@ -20,11 +21,19 @@ export default async function AdminLayout({
 
   return (
     <div className="min-h-screen bg-zinc-50">
-      <div className="border-b border-emerald-900 bg-emerald-950 px-6 py-4">
-        <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400">
-          Admin
-        </p>
-        <h1 className="text-lg font-bold text-white">Green Grant Finder</h1>
+      <div className="flex items-center justify-between gap-4 border-b border-emerald-900 bg-emerald-950 px-6 py-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400">
+            Admin
+          </p>
+          <h1 className="text-lg font-bold text-white">Green Grant Finder</h1>
+        </div>
+        <Link
+          href="/"
+          className="rounded-full border border-emerald-700 px-4 py-1.5 text-xs font-semibold text-emerald-100 transition-colors hover:bg-emerald-900"
+        >
+          View site ↗
+        </Link>
       </div>
       <main className="mx-auto max-w-5xl px-4 py-10">{children}</main>
     </div>

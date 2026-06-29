@@ -3,12 +3,33 @@
 import { useEffect, useRef, useState } from "react";
 import type { Grant } from "@/types/grant";
 
-export function PendingGrantsList({ grants }: { grants: Grant[] }) {
+export function PendingGrantsList({
+  grants,
+  search = "",
+  onCountChange,
+}: {
+  grants: Grant[];
+  search?: string;
+  onCountChange?: (n: number) => void;
+}) {
   const [items, setItems] = useState(grants);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   // The grant currently being rejected (drives the reason modal), or null.
   const [rejectTarget, setRejectTarget] = useState<Grant | null>(null);
+
+  useEffect(() => {
+    onCountChange?.(items.length);
+  }, [items.length, onCountChange]);
+
+  const q = search.trim().toLowerCase();
+  const visible = q
+    ? items.filter((g) =>
+        `${g.title ?? ""} ${g.provider_name ?? g.provider ?? ""}`
+          .toLowerCase()
+          .includes(q),
+      )
+    : items;
 
   async function decide(
     id: string,
@@ -58,8 +79,13 @@ export function PendingGrantsList({ grants }: { grants: Grant[] }) {
         </p>
       )}
 
+      {visible.length === 0 ? (
+        <p className="rounded-2xl border border-zinc-200 bg-white p-8 text-center text-zinc-500">
+          No pending grants match “{search}”.
+        </p>
+      ) : (
       <ul className="space-y-4">
-        {items.map((grant) => (
+        {visible.map((grant) => (
           <li
             key={grant.id}
             className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm"
@@ -115,6 +141,7 @@ export function PendingGrantsList({ grants }: { grants: Grant[] }) {
           </li>
         ))}
       </ul>
+      )}
 
       {rejectTarget && (
         <RejectModal

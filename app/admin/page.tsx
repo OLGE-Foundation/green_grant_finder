@@ -1,7 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Grant } from "@/types/grant";
-import { PendingGrantsList } from "./components/PendingGrantsList";
-import { ApprovedGrantsList } from "./components/ApprovedGrantsList";
+import { AdminDashboard } from "./components/AdminDashboard";
 
 export const dynamic = "force-dynamic"; // always fresh
 
@@ -11,7 +10,7 @@ const ADMIN_COLUMNS =
 export default async function AdminPage() {
   const supabase = createAdminClient();
 
-  const [pendingRes, approvedRes] = await Promise.all([
+  const [pendingRes, approvedRes, rejectedRes] = await Promise.all([
     supabase
       .from("grants")
       .select(ADMIN_COLUMNS)
@@ -22,6 +21,10 @@ export default async function AdminPage() {
       .select(ADMIN_COLUMNS)
       .eq("status", "approved")
       .order("created_at", { ascending: false }),
+    supabase
+      .from("grants")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "rejected"),
   ]);
 
   if (pendingRes.error || approvedRes.error) {
@@ -34,26 +37,21 @@ export default async function AdminPage() {
 
   const pending = (pendingRes.data ?? []) as Grant[];
   const approved = (approvedRes.data ?? []) as Grant[];
+  const rejectedCount = rejectedRes.count ?? 0;
 
   return (
-    <div className="space-y-12">
-      <section>
-        <h2 className="mb-1 text-2xl font-bold text-zinc-900">Pending grants</h2>
-        <p className="mb-8 text-sm text-zinc-500">
-          {pending.length} awaiting review
+    <div>
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold text-zinc-900">Grant dashboard</h2>
+        <p className="mt-1 text-sm text-zinc-500">
+          Review submissions and manage the public directory.
         </p>
-        <PendingGrantsList grants={pending} />
-      </section>
-
-      <section>
-        <h2 className="mb-1 text-2xl font-bold text-zinc-900">
-          Approved grants
-        </h2>
-        <p className="mb-8 text-sm text-zinc-500">
-          {approved.length} live in the directory — edit or remove
-        </p>
-        <ApprovedGrantsList grants={approved} />
-      </section>
+      </div>
+      <AdminDashboard
+        pending={pending}
+        approved={approved}
+        rejectedCount={rejectedCount}
+      />
     </div>
   );
 }

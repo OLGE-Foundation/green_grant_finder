@@ -21,12 +21,33 @@ type GrantUpdate = {
   eligibility: string[];
 };
 
-export function ApprovedGrantsList({ grants }: { grants: Grant[] }) {
+export function ApprovedGrantsList({
+  grants,
+  search = "",
+  onCountChange,
+}: {
+  grants: Grant[];
+  search?: string;
+  onCountChange?: (n: number) => void;
+}) {
   const [items, setItems] = useState(grants);
   const [error, setError] = useState<string | null>(null);
   const [editTarget, setEditTarget] = useState<Grant | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Grant | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  useEffect(() => {
+    onCountChange?.(items.length);
+  }, [items.length, onCountChange]);
+
+  const q = search.trim().toLowerCase();
+  const visible = q
+    ? items.filter((g) =>
+        `${g.title ?? ""} ${g.provider_name ?? g.provider ?? ""}`
+          .toLowerCase()
+          .includes(q),
+      )
+    : items;
 
   async function handleSave(id: string, updates: GrantUpdate): Promise<void> {
     setBusyId(id);
@@ -95,8 +116,13 @@ export function ApprovedGrantsList({ grants }: { grants: Grant[] }) {
         </p>
       )}
 
+      {visible.length === 0 ? (
+        <p className="rounded-2xl border border-zinc-200 bg-white p-8 text-center text-zinc-500">
+          No approved grants match “{search}”.
+        </p>
+      ) : (
       <ul className="space-y-3">
-        {items.map((grant) => {
+        {visible.map((grant) => {
           const provider = grant.provider_name ?? grant.provider;
           const min = grant.funding_amount_min ?? grant.amount_min;
           const max = grant.funding_amount_max ?? grant.amount_max;
@@ -155,6 +181,7 @@ export function ApprovedGrantsList({ grants }: { grants: Grant[] }) {
           );
         })}
       </ul>
+      )}
 
       {editTarget && (
         <EditModal
