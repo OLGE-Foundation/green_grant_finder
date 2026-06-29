@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
+import { MotionConfig } from "framer-motion";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 
@@ -114,7 +115,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ],
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <MotionConfig reducedMotion="user">
+      <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+    </MotionConfig>
+  );
 }
 
 export function useAuth() {

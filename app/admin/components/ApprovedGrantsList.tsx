@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import type { Grant } from "@/types/grant";
 import {
   ELIGIBILITY_OPTIONS,
@@ -121,14 +122,20 @@ export function ApprovedGrantsList({
           No approved grants match “{search}”.
         </p>
       ) : (
-      <ul className="space-y-3">
+      <motion.ul layout className="space-y-3">
+        <AnimatePresence mode="popLayout" initial={false}>
         {visible.map((grant) => {
           const provider = grant.provider_name ?? grant.provider;
           const min = grant.funding_amount_min ?? grant.amount_min;
           const max = grant.funding_amount_max ?? grant.amount_max;
           return (
-            <li
+            <motion.li
               key={grant.id}
+              layout
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
               className="flex items-start justify-between gap-4 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm"
             >
               <div className="min-w-0 flex-1">
@@ -177,10 +184,11 @@ export function ApprovedGrantsList({
                   Delete
                 </button>
               </div>
-            </li>
+            </motion.li>
           );
         })}
-      </ul>
+        </AnimatePresence>
+      </motion.ul>
       )}
 
       {editTarget && (
@@ -291,16 +299,22 @@ function EditModal({
   }
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2 }}
       className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/40 p-4"
       onClick={() => {
         if (!busy) onCancel();
       }}
     >
-      <div
+      <motion.div
         role="dialog"
         aria-modal="true"
         aria-labelledby="edit-modal-title"
+        initial={{ opacity: 0, scale: 0.96, y: 8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 320, damping: 28 }}
         className="my-8 w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
@@ -428,8 +442,8 @@ function EditModal({
             {busy ? "Saving…" : "Save changes"}
           </button>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -490,16 +504,22 @@ function ConfirmDeleteModal({
   }, [busy, onCancel]);
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2 }}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       onClick={() => {
         if (!busy) onCancel();
       }}
     >
-      <div
+      <motion.div
         role="dialog"
         aria-modal="true"
         aria-labelledby="delete-modal-title"
+        initial={{ opacity: 0, scale: 0.96, y: 8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 320, damping: 28 }}
         className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
@@ -531,7 +551,7 @@ function ConfirmDeleteModal({
             {busy ? "Deleting…" : "Delete permanently"}
           </button>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

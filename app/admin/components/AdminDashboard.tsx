@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 import type { Grant } from "@/types/grant";
 import { PendingGrantsList } from "./PendingGrantsList";
 import { ApprovedGrantsList } from "./ApprovedGrantsList";
@@ -61,9 +62,12 @@ export function AdminDashboard({ pending, approved, rejectedCount }: Props) {
     <div className="space-y-8">
       {/* Stat cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {stats.map((s) => (
-          <div
+        {stats.map((s, i) => (
+          <motion.div
             key={s.key}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: i * 0.06, ease: [0.16, 1, 0.3, 1] }}
             className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm"
           >
             <div className="flex items-center justify-between">
@@ -76,8 +80,16 @@ export function AdminDashboard({ pending, approved, rejectedCount }: Props) {
                 {s.icon}
               </span>
             </div>
-            <p className="mt-3 text-3xl font-bold text-zinc-900">{s.value}</p>
-          </div>
+            <motion.p
+              key={s.value}
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25 }}
+              className="mt-3 text-3xl font-bold text-zinc-900"
+            >
+              {s.value}
+            </motion.p>
+          </motion.div>
         ))}
       </div>
 
@@ -152,15 +164,20 @@ function TabButton({
       role="tab"
       aria-selected={active}
       onClick={onClick}
-      className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
-        active
-          ? "bg-white text-emerald-900 shadow-sm"
-          : "text-zinc-500 hover:text-zinc-800"
+      className={`relative flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
+        active ? "text-emerald-900" : "text-zinc-500 hover:text-zinc-800"
       }`}
     >
-      {label}
+      {active && (
+        <motion.span
+          layoutId="admin-tab-pill"
+          className="absolute inset-0 rounded-full bg-white shadow-sm"
+          transition={{ type: "spring", stiffness: 420, damping: 34 }}
+        />
+      )}
+      <span className="relative z-10">{label}</span>
       <span
-        className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+        className={`relative z-10 rounded-full px-2 py-0.5 text-xs font-bold transition-colors ${
           active ? "bg-emerald-100 text-emerald-800" : "bg-zinc-200 text-zinc-600"
         }`}
       >

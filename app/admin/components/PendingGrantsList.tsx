@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import type { Grant } from "@/types/grant";
 
 export function PendingGrantsList({
@@ -84,10 +85,16 @@ export function PendingGrantsList({
           No pending grants match “{search}”.
         </p>
       ) : (
-      <ul className="space-y-4">
+      <motion.ul layout className="space-y-4">
+        <AnimatePresence mode="popLayout" initial={false}>
         {visible.map((grant) => (
-          <li
+          <motion.li
             key={grant.id}
+            layout
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
             className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm"
           >
             <div className="flex items-start justify-between gap-4">
@@ -138,9 +145,10 @@ export function PendingGrantsList({
                 year: "numeric",
               })}
             </p>
-          </li>
+          </motion.li>
         ))}
-      </ul>
+        </AnimatePresence>
+      </motion.ul>
       )}
 
       {rejectTarget && (
@@ -181,16 +189,22 @@ function RejectModal({
   }, [busy, onCancel]);
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2 }}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       onClick={() => {
         if (!busy) onCancel();
       }}
     >
-      <div
+      <motion.div
         role="dialog"
         aria-modal="true"
         aria-labelledby="reject-modal-title"
+        initial={{ opacity: 0, scale: 0.96, y: 8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 320, damping: 28 }}
         className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
@@ -236,7 +250,7 @@ function RejectModal({
             {busy ? "Rejecting…" : "Confirm reject"}
           </button>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
